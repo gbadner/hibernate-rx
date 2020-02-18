@@ -1,6 +1,5 @@
 package org.hibernate.rx.persister.entity.impl;
 
-import org.hibernate.AssertionFailure;
 import org.hibernate.HibernateException;
 import org.hibernate.boot.model.naming.Identifier;
 import org.hibernate.boot.model.relational.Database;
@@ -22,7 +21,6 @@ import org.hibernate.mapping.SimpleValue;
 import org.hibernate.persister.spi.PersisterCreationContext;
 import org.hibernate.rx.util.impl.RxUtil;
 
-import javax.naming.OperationNotSupportedException;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -86,9 +84,7 @@ public class IdentifierGeneration {
 				return new SequenceRxIdentifierGenerator(
 						persistentClass,
 						creationContext,
-						createRxOptimizer(
-								((SequenceStyleGenerator) identifierGenerator).getOptimizer()
-						)
+						((SequenceStyleGenerator) identifierGenerator).getOptimizer()
 				);
 			}
 			throw new IllegalStateException("unknown structure type");
@@ -204,17 +200,5 @@ public class IdentifierGeneration {
 			);
 		}
 		return qualifiedTableName;
-	}
-
-	static RxOptimizer createRxOptimizer(Optimizer optimizer) {
-		if ( optimizer instanceof NoopOptimizer ) {
-			return new NoopRxOptimizer();
-		}
-		else if ( optimizer instanceof HiLoOptimizer ) {
-			return new HiLoRxOptimizer( ((HiLoOptimizer) optimizer).getReturnClass(), optimizer.getIncrementSize() );
-		}
-		else {
-			throw new HibernateException( optimizer.getClass().getName() + " is not supported yet" );
-		}
 	}
 }
