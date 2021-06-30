@@ -5,11 +5,11 @@
  */
 package org.hibernate.reactive.provider.service;
 
-import java.sql.ResultSet;
+
 
 import org.hibernate.tool.schema.extract.spi.ExtractionContext;
 
 public interface ReactiveExtractionContext extends ExtractionContext {
 
-	ResultSet getQueryResultSet(String queryString);
+	//ResultSet getQueryResultSet(String queryString);
 }

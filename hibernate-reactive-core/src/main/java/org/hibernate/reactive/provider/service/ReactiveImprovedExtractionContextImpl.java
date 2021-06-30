@@ -8,13 +8,14 @@ package org.hibernate.reactive.provider.service;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.CompletionStage;
 
 import org.hibernate.boot.model.relational.Namespace;
 import org.hibernate.engine.jdbc.env.spi.JdbcEnvironment;
 import org.hibernate.internal.CoreLogging;
 import org.hibernate.internal.CoreMessageLogger;
+import org.hibernate.reactive.pool.ReactiveConnection;
 import org.hibernate.reactive.pool.ReactiveConnectionPool;
-import org.hibernate.reactive.vertx.VertxInstance;
 import org.hibernate.resource.transaction.spi.DdlTransactionIsolator;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.tool.schema.internal.exec.ImprovedExtractionContextImpl;
@@ -27,9 +28,7 @@ public class ReactiveImprovedExtractionContextImpl extends ImprovedExtractionCon
 
 	private static CoreMessageLogger LOG = CoreLogging.messageLogger( ReactiveImprovedExtractionContextImpl.class );
 
-	private final ServiceRegistry serviceRegistry;
-	private VertxInstance vertxSupplier;
-	private ReactiveConnectionPool service;
+	private final ReactiveConnectionPool service;
 
 	public ReactiveImprovedExtractionContextImpl(
 			ServiceRegistry registry,
@@ -61,7 +60,7 @@ public class ReactiveImprovedExtractionContextImpl extends ImprovedExtractionCon
 				name.getSchema(),
 				databaseObjectAccess
 		);
-		this.serviceRegistry = registry;
+		service = registry.getService( ReactiveConnectionPool.class );
 	}
 
 	@Override
@@ -69,22 +68,25 @@ public class ReactiveImprovedExtractionContextImpl extends ImprovedExtractionCon
 			String queryString,
 			ResultSetProcessor<T> resultSetProcessor) throws SQLException {
 
-		return resultSetProcessor.process( getQueryResultSet( queryString ) );
+		final CompletionStage<ReactiveConnection> connectionStage = service.getConnection();
+
+		try (final ResultSet resultSet = getQueryResultSet( queryString, connectionStage ) ) {
+			return resultSetProcessor.process( resultSet );
+		}
+		finally {
+			connectionStage.whenComplete( (c, e) -> c.close() );
+		}
 	}
 
-	@Override
-	public ResultSet getQueryResultSet(String queryString) {
-		service = serviceRegistry.getService( ReactiveConnectionPool.class );
-
-		return service.getConnection()
-				.thenCompose( c -> c.selectJdbc( queryString, new Object[0] ) )
+	private ResultSet getQueryResultSet(String queryString, CompletionStage<ReactiveConnection> connectionStage) {
+		return connectionStage.thenCompose( c -> c.selectJdbcOutsideTransaction( queryString ) )
 				.handle( (resultSet, err) -> {
 					logSqlException(
 							err,
 							() -> "could not execute query ", queryString
 					);
 					return returnOrRethrow( err, resultSet );
-				})
+				} )
 				.toCompletableFuture()
 				.join();
 	}
