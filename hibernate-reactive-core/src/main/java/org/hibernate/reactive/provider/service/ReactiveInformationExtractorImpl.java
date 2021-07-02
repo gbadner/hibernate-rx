@@ -1,6 +1,6 @@
 /* Hibernate, Relational Persistence for Idiomatic Java
  *
- * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright: Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.reactive.provider.service;
@@ -14,7 +14,6 @@ import org.hibernate.internal.CoreLogging;
 import org.hibernate.internal.CoreMessageLogger;
 import org.hibernate.tool.schema.extract.internal.AbstractInformationExtractorImpl;
 import org.hibernate.tool.schema.extract.spi.ExtractionContext;
-import org.hibernate.tool.schema.extract.spi.TableInformation;
 
 public class ReactiveInformationExtractorImpl extends AbstractInformationExtractorImpl {
 
@@ -246,13 +245,6 @@ public class ReactiveInformationExtractorImpl extends AbstractInformationExtract
 	protected <T> T processColumnsResultSet(
 			String catalogFilter,
 			String schemaFilter,
-			ExtractionContext.ResultSetProcessor<T> processor) throws SQLException {
-		return processColumnsResultSet( catalogFilter, schemaFilter, null, processor );
-	}
-
-	protected <T> T processColumnsResultSet(
-			String catalogFilter,
-			String schemaFilter,
 			String tableName,
 			ExtractionContext.ResultSetProcessor<T> processor) throws SQLException {
 
@@ -365,11 +357,6 @@ public class ReactiveInformationExtractorImpl extends AbstractInformationExtract
 
 		return extractionContext.getQueryResults( sb.toString(), processor );
 	}
-
-	protected void addColumns(TableInformation tableInformation) {
-
-	}
-
 
 	private void appendSingleQuotedEscapedStringIfNonNull(
 			String prefix,

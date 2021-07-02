@@ -1,12 +1,17 @@
 /* Hibernate, Relational Persistence for Idiomatic Java
  *
- * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright: Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.reactive;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -30,6 +35,7 @@ import org.hibernate.reactive.provider.service.ReactiveGenerationTarget;
 import org.hibernate.reactive.testing.DatabaseSelectionRule;
 import org.hibernate.reactive.testing.SessionFactoryManager;
 import org.hibernate.reactive.vertx.VertxInstance;
+import org.hibernate.tool.schema.JdbcMetadaAccessStrategy;
 import org.hibernate.tool.schema.spi.SchemaManagementTool;
 
 import org.junit.Before;
@@ -37,6 +43,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -45,7 +52,7 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.RunTestOnContext;
 import io.vertx.ext.unit.junit.Timeout;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
 
 import static org.hibernate.reactive.containers.DatabaseConfiguration.DBType.POSTGRESQL;
 import static org.hibernate.reactive.containers.DatabaseConfiguration.dbType;
@@ -53,8 +60,20 @@ import static org.hibernate.reactive.containers.DatabaseConfiguration.dbType;
 /**
  * @author Gail Badner
  */
-@RunWith(VertxUnitRunner.class)
+
+@RunWith(Parameterized.class)
+@Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
 public class SchemaUpdatePostgreSqlTest {
+
+	@Parameterized.Parameters
+	public static Collection<String> parameters() {
+		return Arrays.asList(
+				JdbcMetadaAccessStrategy.GROUPED.toString(), JdbcMetadaAccessStrategy.INDIVIDUALLY.toString()
+		);
+	}
+
+	@Parameterized.Parameter
+	public String jdbcMetadataExtractorStrategy;
 
 	public static SessionFactoryManager factoryManager = new SessionFactoryManager();
 
@@ -79,22 +98,33 @@ public class SchemaUpdatePostgreSqlTest {
 
 	@Test
 	public void testUpdate(TestContext context) {
-		setup( context, ASimpleNext.class, "update" );
+		setup(
+				context,
+				Arrays.asList( ASimpleNext.class, AOther.class, AAnother.class ),
+				"update"
+		);
 	}
 
 	@Before
 	public void before(TestContext context) {
-		setup( context, ASimpleFirst.class, "create" );
+		Collection<Class<?>> entityClasses = new HashSet<>();
+		entityClasses.add( ASimpleFirst.class );
+		entityClasses.add( AOther.class );
+		setup(
+				context,
+				Arrays.asList( ASimpleFirst.class, AOther.class ),
+				"create"
+		);
 	}
 
-	private void setup(TestContext context, Class<?> entityClass, String hbm2DdlOption) {
+	private void setup(TestContext context, Collection<Class<?>> entityClasses, String hbm2DdlOption) {
 		Async async = context.async();
 		vertxContextRule.vertx()
 				.executeBlocking(
 						// schema generation is a blocking operation and so it causes an
 						// exception when run on the Vert.x event loop. So call it using
 						// Vertx.executeBlocking()
-						p -> startFactoryManager( p, entityClass, hbm2DdlOption ),
+						p -> startFactoryManager( p, entityClasses, hbm2DdlOption ),
 						event -> {
 							factoryManager.stop();
 							if ( event.succeeded() ) {
@@ -107,9 +137,9 @@ public class SchemaUpdatePostgreSqlTest {
 				);
 	}
 
-	private void startFactoryManager(Promise<Object> p, Class<?> entityClass, String hbm2DdlOption) {
+	private void startFactoryManager(Promise<Object> p, Collection<Class<?>> entityClasses, String hbm2DdlOption) {
 		try {
-			factoryManager.start( () -> createHibernateSessionFactory( entityClass, hbm2DdlOption ) );
+			factoryManager.start( () -> createHibernateSessionFactory( entityClasses, hbm2DdlOption ) );
 			p.complete();
 		}
 		catch (Throwable e) {
@@ -117,10 +147,11 @@ public class SchemaUpdatePostgreSqlTest {
 		}
 	}
 
-	private SessionFactory createHibernateSessionFactory(Class<?> entityClass, String hbm2DdlOption) {
-		Configuration configuration = constructConfiguration( hbm2DdlOption )
-				.addAnnotatedClass( entityClass )
-				.addAnnotatedClass( AOther.class );
+	private SessionFactory createHibernateSessionFactory(Collection<Class<?>> entityClasses, String hbm2DdlOption) {
+		Configuration configuration = constructConfiguration( hbm2DdlOption );
+		for ( Class<?> entityClass : entityClasses ) {
+			configuration.addAnnotatedClass( entityClass );
+		}
 		StandardServiceRegistryBuilder builder = new ReactiveServiceRegistryBuilder()
 				.addService( VertxInstance.class, (VertxInstance) () -> vertxContextRule.vertx() )
 				.applySettings( configuration.getProperties() );
@@ -145,6 +176,8 @@ public class SchemaUpdatePostgreSqlTest {
 		configuration.setProperty( Settings.FORMAT_SQL, System.getProperty(Settings.FORMAT_SQL, "false") );
 		configuration.setProperty( Settings.HIGHLIGHT_SQL, System.getProperty(Settings.HIGHLIGHT_SQL, "true") );
 		configuration.setProperty( Settings.DEFAULT_SCHEMA, "public" );
+		configuration.setProperty( Settings.HBM2DDL_JDBC_METADATA_EXTRACTOR_STRATEGY, jdbcMetadataExtractorStrategy );
+
 		return configuration;
 	}
 	/*
@@ -198,6 +231,23 @@ public class SchemaUpdatePostgreSqlTest {
 	public static class AOtherId implements Serializable {
 		private int id1Int;
 		private String id2String;
+
+		@Override
+		public boolean equals(Object o) {
+			if ( this == o ) {
+				return true;
+			}
+			if ( o == null || getClass() != o.getClass() ) {
+				return false;
+			}
+			AOtherId aOtherId = (AOtherId) o;
+			return id1Int == aOtherId.id1Int && id2String.equals( aOtherId.id2String );
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash( id1Int, id2String );
+		}
 	}
 
 	@Entity(name = "ASimple")
@@ -212,13 +262,25 @@ public class SchemaUpdatePostgreSqlTest {
 		private Integer id;
 
 		private Integer aValue;
+
 		@Column
 		private String aStringValue;
-		@ManyToOne
+
+		@ManyToOne(cascade = CascadeType.ALL)
 		private AOther aOther;
-		@ManyToOne
-		private AOther anotherAOther;
+
+		@ManyToOne(cascade = CascadeType.ALL)
+		private AAnother aAnother;
 
 		private String data;
+	}
+
+	@Entity(name = "AAnother")
+	public static class AAnother {
+		@Id
+		@GeneratedValue
+		private Integer id;
+
+		private String description;
 	}
 }
