@@ -8,11 +8,10 @@ package org.hibernate.reactive;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import javax.persistence.CascadeType;
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
@@ -26,36 +25,28 @@ import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
-import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
-import org.hibernate.reactive.containers.DatabaseConfiguration;
 import org.hibernate.reactive.pool.ReactiveConnection;
 import org.hibernate.reactive.provider.ReactiveServiceRegistryBuilder;
 import org.hibernate.reactive.provider.Settings;
-import org.hibernate.reactive.provider.service.ReactiveGenerationTarget;
 import org.hibernate.reactive.testing.DatabaseSelectionRule;
 import org.hibernate.reactive.testing.SessionFactoryManager;
 import org.hibernate.reactive.vertx.VertxInstance;
 import org.hibernate.tool.schema.JdbcMetadaAccessStrategy;
-import org.hibernate.tool.schema.spi.SchemaManagementTool;
 
+import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.RunTestOnContext;
-import io.vertx.ext.unit.junit.Timeout;
 import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
 
 import static org.hibernate.reactive.containers.DatabaseConfiguration.DBType.POSTGRESQL;
-import static org.hibernate.reactive.containers.DatabaseConfiguration.dbType;
+import static org.hibernate.reactive.util.impl.CompletionStages.voidFuture;
 
 /**
  * @author Gail Badner
@@ -63,7 +54,7 @@ import static org.hibernate.reactive.containers.DatabaseConfiguration.dbType;
 
 @RunWith(Parameterized.class)
 @Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
-public class SchemaUpdatePostgreSqlTest {
+public class SchemaUpdatePostgreSqlTest extends AbstractReactiveTest {
 
 	@Parameterized.Parameters
 	public static Collection<String> parameters() {
@@ -80,45 +71,74 @@ public class SchemaUpdatePostgreSqlTest {
 	@Rule
 	public DatabaseSelectionRule dbRule = DatabaseSelectionRule.runOnlyFor( POSTGRESQL );
 
-	@Rule
-	public Timeout timeoutRule = Timeout.seconds( 5 * 60 );
-
-	@ClassRule
-	public static RunTestOnContext vertxContextRule = new RunTestOnContext( () -> {
-		VertxOptions options = new VertxOptions();
-		options.setBlockedThreadCheckInterval( 5 );
-		options.setBlockedThreadCheckIntervalUnit( TimeUnit.MINUTES );
-		Vertx vertx = Vertx.vertx( options );
-		return vertx;
-	} );
-
 	private Object session;
 
 	private ReactiveConnection connection;
 
 	@Test
 	public void testUpdate(TestContext context) {
-		setup(
+		final ASimpleNext aSimple = new ASimpleNext();
+		aSimple.aValue = 9;
+		aSimple.aStringValue = "abc";
+		aSimple.data = "Data";
+
+		final AOther aOther = new AOther();
+		aOther.id1Int = 1;
+		aOther.id2String = "other";
+		aOther.anotherString = "another";
+
+		final AAnother aAnother = new AAnother();
+		aAnother.description = "description";
+
+		aSimple.aOther = aOther;
+		aSimple.aAnother = aAnother;
+
+		test(
 				context,
-				Arrays.asList( ASimpleNext.class, AOther.class, AAnother.class ),
-				"update"
+						setup(
+								Arrays.asList( ASimpleNext.class, AOther.class, AAnother.class ),
+													"update",
+													false
+
+						)
+						.thenCompose( v -> openSession()
+								.thenCompose( s -> voidFuture()
+										.thenCompose( v1 -> s.persist( aSimple ) )
+										.thenCompose( v1 -> s.flush() )
+										.thenAccept( v1 -> s.clear() )
+										.thenAccept( v1 -> factoryManager.stop() )
+								)
+						)
 		);
 	}
 
 	@Before
 	public void before(TestContext context) {
-		Collection<Class<?>> entityClasses = new HashSet<>();
-		entityClasses.add( ASimpleFirst.class );
-		entityClasses.add( AOther.class );
 		setup(
-				context,
 				Arrays.asList( ASimpleFirst.class, AOther.class ),
-				"create"
+				"create",
+				true
 		);
 	}
 
-	private void setup(TestContext context, Collection<Class<?>> entityClasses, String hbm2DdlOption) {
-		Async async = context.async();
+	@After
+	public void after(TestContext context) {
+		setup(
+				Arrays.asList( ASimpleNext.class, AOther.class, AAnother.class ),
+				"drop",
+				true
+		);
+	}
+
+	protected SessionFactoryManager getSessionFactoryManager() {
+		return factoryManager;
+	}
+
+	private CompletionStage<Void> setup(
+			Collection<Class<?>> entityClasses,
+			String hbm2DdlOption,
+			boolean closeAfterSessionFactoryStarted) {
+		CompletableFuture<Void> future = new CompletableFuture<Void>();
 		vertxContextRule.vertx()
 				.executeBlocking(
 						// schema generation is a blocking operation and so it causes an
@@ -126,15 +146,18 @@ public class SchemaUpdatePostgreSqlTest {
 						// Vertx.executeBlocking()
 						p -> startFactoryManager( p, entityClasses, hbm2DdlOption ),
 						event -> {
-							factoryManager.stop();
+							if ( closeAfterSessionFactoryStarted ) {
+								factoryManager.stop();
+							}
 							if ( event.succeeded() ) {
-								async.complete();
+								future.complete();
 							}
 							else {
-								context.fail( event.cause() );
+								future.fail( event.cause() );
 							}
 						}
 				);
+		return voidFuture();
 	}
 
 	private void startFactoryManager(Promise<Object> p, Collection<Class<?>> entityClasses, String hbm2DdlOption) {
@@ -161,50 +184,15 @@ public class SchemaUpdatePostgreSqlTest {
 		return sessionFactory;
 	}
 
-	private static boolean doneTablespace;
-
 	protected Configuration constructConfiguration(String hbm2DdlOption) {
-		Configuration configuration = new Configuration();
+		Configuration configuration = constructConfiguration();
 		configuration.setProperty( Settings.HBM2DDL_AUTO, hbm2DdlOption );
-		configuration.setProperty( Settings.URL, DatabaseConfiguration.getJdbcUrl() );
-		if ( DatabaseConfiguration.dbType() == DatabaseConfiguration.DBType.DB2 && !doneTablespace ) {
-			configuration.setProperty(Settings.HBM2DDL_IMPORT_FILES, "/db2.sql");
-			doneTablespace = true;
-		}
-		//Use JAVA_TOOL_OPTIONS='-Dhibernate.show_sql=true'
-		configuration.setProperty( Settings.SHOW_SQL, System.getProperty(Settings.SHOW_SQL, "false") );
-		configuration.setProperty( Settings.FORMAT_SQL, System.getProperty(Settings.FORMAT_SQL, "false") );
-		configuration.setProperty( Settings.HIGHLIGHT_SQL, System.getProperty(Settings.HIGHLIGHT_SQL, "true") );
 		configuration.setProperty( Settings.DEFAULT_SCHEMA, "public" );
 		configuration.setProperty( Settings.HBM2DDL_JDBC_METADATA_EXTRACTOR_STRATEGY, jdbcMetadataExtractorStrategy );
 
 		return configuration;
 	}
-	/*
-	 * MySQL doesn't implement 'drop table cascade constraints'.
-	 *
-	 * The reason this is a problem in our test suite is that we
-	 * have lots of different schemas for the "same" table: Pig, Author, Book.
-	 * A user would surely only have one schema for each table.
-	 */
-	protected void configureServices(StandardServiceRegistry registry) {
-		if ( dbType() == DatabaseConfiguration.DBType.MYSQL ) {
-			registry.getService( ConnectionProvider.class ); //force the NoJdbcConnectionProvider to load first
-			registry.getService( SchemaManagementTool.class )
-					.setCustomDatabaseGenerationTarget( new ReactiveGenerationTarget( registry) {
-						@Override
-						public void prepare() {
-							super.prepare();
-							accept("set foreign_key_checks = 0");
-						}
-						@Override
-						public void release() {
-							accept("set foreign_key_checks = 1");
-							super.release();
-						}
-					} );
-		}
-	}
+
 
 	@Entity(name = "ASimple")
 	@Table(name = "ASimple", indexes = @Index( columnList = "aValue ASC, aStringValue DESC"))
@@ -218,6 +206,30 @@ public class SchemaUpdatePostgreSqlTest {
 		private AOther aOther;
 	}
 
+	@Entity(name = "ASimple")
+	@Table(name = "ASimple", indexes = {
+			@Index( columnList = "aValue ASC, aStringValue DESC"),
+			@Index( columnList = "aValue DESC, data ASC")
+	},
+			uniqueConstraints = { @UniqueConstraint( name = "uniq", columnNames = "aStringValue")})
+	public static class ASimpleNext {
+		@Id
+		@GeneratedValue
+		private Integer id;
+
+		private Integer aValue;
+
+		private String aStringValue;
+
+		private String data;
+
+		@ManyToOne(cascade = CascadeType.ALL)
+		private AOther aOther;
+
+		@ManyToOne(cascade = CascadeType.ALL)
+		private AAnother aAnother;
+	}
+
 	@Entity(name = "AOther")
 	@IdClass(AOtherId.class)
 	public static class AOther {
@@ -226,6 +238,8 @@ public class SchemaUpdatePostgreSqlTest {
 
 		@Id
 		private String id2String;
+
+		private String anotherString;
 	}
 
 	public static class AOtherId implements Serializable {
@@ -248,31 +262,6 @@ public class SchemaUpdatePostgreSqlTest {
 		public int hashCode() {
 			return Objects.hash( id1Int, id2String );
 		}
-	}
-
-	@Entity(name = "ASimple")
-	@Table(name = "ASimple", indexes = {
-			@Index( columnList = "aValue ASC, aStringValue DESC"),
-			@Index( columnList = "aValue DESC, data ASC")
-	},
-	uniqueConstraints = { @UniqueConstraint( name = "uniq", columnNames = "aStringValue")})
-	public static class ASimpleNext {
-		@Id
-		@GeneratedValue
-		private Integer id;
-
-		private Integer aValue;
-
-		@Column
-		private String aStringValue;
-
-		@ManyToOne(cascade = CascadeType.ALL)
-		private AOther aOther;
-
-		@ManyToOne(cascade = CascadeType.ALL)
-		private AAnother aAnother;
-
-		private String data;
 	}
 
 	@Entity(name = "AAnother")

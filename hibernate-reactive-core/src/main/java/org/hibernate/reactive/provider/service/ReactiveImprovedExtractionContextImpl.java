@@ -24,7 +24,7 @@ import org.hibernate.tool.schema.internal.exec.JdbcContext;
 import static org.hibernate.reactive.util.impl.CompletionStages.logSqlException;
 import static org.hibernate.reactive.util.impl.CompletionStages.returnOrRethrow;
 
-public class ReactiveImprovedExtractionContextImpl extends ImprovedExtractionContextImpl implements ReactiveExtractionContext {
+public class ReactiveImprovedExtractionContextImpl extends ImprovedExtractionContextImpl {
 
 	private static CoreMessageLogger LOG = CoreLogging.messageLogger( ReactiveImprovedExtractionContextImpl.class );
 

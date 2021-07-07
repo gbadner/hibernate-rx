@@ -18,156 +18,116 @@ import org.hibernate.tool.schema.extract.spi.ExtractionContext;
 public class ReactiveInformationExtractorImpl extends AbstractInformationExtractorImpl {
 
 	private static final CoreMessageLogger LOG = CoreLogging.messageLogger( ReactiveInformationExtractorImpl.class );
-	private final ReactiveExtractionContext extractionContext;
-	private final String resultSetCatalogLabel;
-	private final String resultSetSchemaLabel;
-	private final String resultSetTableNameLabel;
-	private final String resultSetTableTypeLabel;
-	private final String resultSetRemarksLabel;
-	private final String resultSetColumnNameLabel;
-	private final String resultSetSqlTypeCodeLabel;
-	private final String resultSetTypeNameLabel;
-	private final String resultSetColumnSizeLabel;
-	private final String resultSetDecimalDigitsLabel;
-	private final String resultSetIsNullableLabel;
-	private final String resultSetIndexTypeLabel;
-	private final String resultSetIndexNameLabel;
-	private final String resultSetForeignKeyLabel;
-	private final String resultSetPrimaryKeyNameLabel;
-	private final String resultSetColumnPositionColumn;
-	private final String resultSetPrimaryKeyColumnNameLabel;
-	private final String resultSetForeignKeyColumnNameLabel;
-	private final String resultSetPrimaryKeyCatalogLabel;
-	private final String resultSetPrimaryKeySchemaLabel;
-	private final String resultSetPrimaryKeyTableLabel;
 
+	private final ExtractionContext extractionContext;
 
 	public ReactiveInformationExtractorImpl(ExtractionContext extractionContext) {
 		super( extractionContext );
-		this.extractionContext = (ReactiveExtractionContext) extractionContext;
-		this.resultSetCatalogLabel = toMetaDataObjectName( Identifier.toIdentifier( "catalog_name" ) );
-		this.resultSetSchemaLabel = toMetaDataObjectName( Identifier.toIdentifier( "schema_name" ) );
-		this.resultSetTableNameLabel = toMetaDataObjectName( Identifier.toIdentifier( "table_name" ) );
-		this.resultSetTableTypeLabel = toMetaDataObjectName( Identifier.toIdentifier( "table_type" ) );
-		this.resultSetRemarksLabel = toMetaDataObjectName( Identifier.toIdentifier( "remarks" ) );
-		this.resultSetColumnNameLabel = toMetaDataObjectName( Identifier.toIdentifier( "column_name" ) );
-		this.resultSetSqlTypeCodeLabel = toMetaDataObjectName( Identifier.toIdentifier( "sql_type_code" ) );
-		this.resultSetTypeNameLabel = toMetaDataObjectName( Identifier.toIdentifier( "`udt_name`" ) );
-		this.resultSetColumnSizeLabel = toMetaDataObjectName( Identifier.toIdentifier( "column_size" ) );
-		this.resultSetDecimalDigitsLabel = toMetaDataObjectName( Identifier.toIdentifier( "decimal_digits" ) );
-		this.resultSetIsNullableLabel = toMetaDataObjectName( Identifier.toIdentifier( "is_nullable" ) );
-		this.resultSetIndexTypeLabel = toMetaDataObjectName( Identifier.toIdentifier( "index_type" ) );
-		this.resultSetIndexNameLabel = toMetaDataObjectName( Identifier.toIdentifier( "index_name" ) );
-		this.resultSetForeignKeyLabel = toMetaDataObjectName( Identifier.toIdentifier( "fk_name" ) );
-		this.resultSetPrimaryKeyNameLabel = toMetaDataObjectName( Identifier.toIdentifier( "pk_name" ) );
-		this.resultSetColumnPositionColumn = toMetaDataObjectName( Identifier.toIdentifier( "key_seq" ) );
-		this.resultSetPrimaryKeyColumnNameLabel = toMetaDataObjectName( Identifier.toIdentifier( "pkcolumn_name" ) );
-		this.resultSetForeignKeyColumnNameLabel = toMetaDataObjectName( Identifier.toIdentifier( "fkcolumn_name" ) );
-
-		this.resultSetPrimaryKeyCatalogLabel = toMetaDataObjectName( Identifier.toIdentifier( "pkcatalog_name" ) );
-		this.resultSetPrimaryKeySchemaLabel = toMetaDataObjectName( Identifier.toIdentifier( "pkschema_name" ) );
-		this.resultSetPrimaryKeyTableLabel = toMetaDataObjectName( Identifier.toIdentifier( "pktable_name" ) );
-
+		this.extractionContext = extractionContext;
 	}
 
 	@Override
 	protected String getResultSetCatalogLabel() {
-		return resultSetCatalogLabel;
+		return normalizeLabel( super.getResultSetCatalogLabel() );
 	}
 	@Override
 	protected String getResultSetSchemaLabel() {
-		return resultSetSchemaLabel;
+		return normalizeLabel( super.getResultSetSchemaLabel() );
 	}
 	@Override
 	protected String getResultSetTableNameLabel() {
-		return resultSetTableNameLabel;
+		return normalizeLabel( super.getResultSetTableNameLabel() );
 	}
 	@Override
 	protected String getResultSetTableTypeLabel() {
-		return resultSetTableTypeLabel;
+		return normalizeLabel( super.getResultSetTableTypeLabel() );
 	}
 	@Override
 	protected String getResultSetRemarksLabel() {
-		return resultSetRemarksLabel;
+		return normalizeLabel( super.getResultSetRemarksLabel() );
 	}
 	@Override
 	protected String getResultSetColumnNameLabel() {
-		return resultSetColumnNameLabel;
+		return normalizeLabel( super.getResultSetColumnNameLabel() );
 	}
 
 	@Override
 	protected String getResultSetSqlTypeCodeLabel() {
-		return resultSetSqlTypeCodeLabel;
+		return normalizeLabel( super.getResultSetSqlTypeCodeLabel() );
 	}
 
 	@Override
 	protected String getResultSetTypeNameLabel() {
-		return resultSetTypeNameLabel;
+		return normalizeLabel( super.getResultSetTypeNameLabel() );
 	}
 
 	@Override
 	protected String getResultSetColumnSizeLabel() {
-		return resultSetColumnSizeLabel;
+		return normalizeLabel( super.getResultSetColumnSizeLabel() );
 	}
 
 	@Override
 	protected String getResultSetDecimalDigitsLabel() {
-		return resultSetDecimalDigitsLabel;
+		return normalizeLabel( super.getResultSetDecimalDigitsLabel() );
 	}
 
 	@Override
 	protected String getResultSetIsNullableLabel() {
-		return resultSetIsNullableLabel;
+		return normalizeLabel( super.getResultSetIsNullableLabel() );
 	}
 
 	@Override
 	protected String getResultSetIndexTypeLabel() {
-		return resultSetIndexTypeLabel;
+		return normalizeLabel( super.getResultSetIndexTypeLabel() );
 	}
 
 	@Override
 	protected String getResultSetIndexNameLabel() {
-		return resultSetIndexNameLabel;
+		return normalizeLabel( super.getResultSetIndexNameLabel() );
 	}
 
 	@Override
 	protected String getResultSetForeignKeyLabel() {
-		return resultSetForeignKeyLabel;
+		return normalizeLabel( super.getResultSetForeignKeyLabel() );
 	}
 
 	@Override
 	protected String getResultSetPrimaryKeyNameLabel() {
-		return resultSetPrimaryKeyNameLabel;
+		return normalizeLabel( super.getResultSetPrimaryKeyNameLabel() );
 	}
 
 	@Override
 	protected String getResultSetColumnPositionColumn() {
-		return resultSetColumnPositionColumn;
+		return normalizeLabel( super.getResultSetColumnPositionColumn() );
 	}
 
 	@Override
 	protected String getResultSetPrimaryKeyColumnNameLabel() {
-		return resultSetPrimaryKeyColumnNameLabel;
+		return normalizeLabel( super.getResultSetPrimaryKeyColumnNameLabel() );
 	}
 
 	@Override
 	protected String getResultSetForeignKeyColumnNameLabel() {
-		return resultSetForeignKeyColumnNameLabel;
+		return normalizeLabel( super.getResultSetForeignKeyColumnNameLabel() );
 	}
 
 	@Override
 	protected String getResultSetPrimaryKeyCatalogLabel() {
-		return resultSetPrimaryKeyCatalogLabel;
+		return normalizeLabel( super.getResultSetPrimaryKeyCatalogLabel() );
 	}
 
 	@Override
 	protected String getResultSetPrimaryKeySchemaLabel() {
-		return resultSetPrimaryKeySchemaLabel;
+		return normalizeLabel( super.getResultSetPrimaryKeySchemaLabel() );
 	}
 
 	@Override
 	protected String getResultSetPrimaryKeyTableLabel() {
-		return resultSetPrimaryKeyTableLabel;
+		return normalizeLabel( super.getResultSetPrimaryKeyTableLabel() );
+	}
+
+	private String normalizeLabel(String columnLabel) {
+		return toMetaDataObjectName( Identifier.toIdentifier( columnLabel ) );
 	}
 
 	@Override
@@ -175,7 +135,7 @@ public class ReactiveInformationExtractorImpl extends AbstractInformationExtract
 		return extractionContext.getQueryResults(
 				String.format(
 						"SELECT catalog_name AS %s FROM information_schema.information_schema_catalog_name",
-						resultSetCatalogLabel
+						getResultSetCatalogLabel()
 				),
 				processor
 		);
@@ -187,8 +147,8 @@ public class ReactiveInformationExtractorImpl extends AbstractInformationExtract
 			String schemaFilter,
 			ExtractionContext.ResultSetProcessor<T> processor) throws SQLException {
 		final StringBuilder sb = new StringBuilder()
-				.append( "SELECT catalog_name AS " ).append( resultSetCatalogLabel )
-				.append( " , schema_name AS "  ).append( resultSetSchemaLabel )
+				.append( "SELECT catalog_name AS " ).append( getResultSetCatalogLabel() )
+				.append( " , schema_name AS "  ).append( getResultSetSchemaLabel() )
 				.append( " FROM information_schema.schemata WHERE true" );
 		appendSingleQuotedEscapedStringIfNonNull( " AND catalog_name = ", catalogFilter, sb );
 		appendSingleQuotedEscapedStringIfNonNull( " AND schema_name = ", schemaFilter, sb );
@@ -205,11 +165,11 @@ public class ReactiveInformationExtractorImpl extends AbstractInformationExtract
 	) throws SQLException {
 
 		final StringBuilder sb = new StringBuilder()
-				.append( "SELECT table_catalog AS " ).append( resultSetCatalogLabel )
-				.append( " , table_schema AS "  ).append( resultSetSchemaLabel )
-				.append( " , table_name AS " ).append( resultSetTableNameLabel )
-				.append( " , table_type AS " ).append( resultSetTableTypeLabel )
-				.append( " , null AS " + resultSetRemarksLabel )
+				.append( "SELECT table_catalog AS " ).append( getResultSetCatalogLabel() )
+				.append( " , table_schema AS "  ).append( getResultSetSchemaLabel() )
+				.append( " , table_name AS " ).append( getResultSetTableNameLabel() )
+				.append( " , table_type AS " ).append( getResultSetTableTypeLabel() )
+				.append( " , null AS " ).append( getResultSetRemarksLabel() )
 					// Remarks are not available from information_schema.
 					// Hibernate ORM does not currently do anything with remarks,
 					// so just return null for now.
@@ -249,19 +209,19 @@ public class ReactiveInformationExtractorImpl extends AbstractInformationExtract
 			ExtractionContext.ResultSetProcessor<T> processor) throws SQLException {
 
 		final StringBuilder sb = new StringBuilder()
-				.append( "SELECT table_name AS " ).append( resultSetTableNameLabel )
-				.append( ", column_name AS " ).append( resultSetColumnNameLabel )
-				.append( ", udt_name AS " ).append( resultSetTypeNameLabel )
-				.append( ", null AS " ).append( resultSetColumnSizeLabel )
+				.append( "SELECT table_name AS " ).append( getResultSetTableNameLabel() )
+				.append( ", column_name AS " ).append( getResultSetColumnNameLabel() )
+				.append( ", udt_name AS " ).append( getResultSetTypeNameLabel() )
+				.append( ", null AS " ).append( getResultSetColumnSizeLabel() )
 					// Column size is fairly complicated to get out of information_schema
 					// and likely to be DB-dependent. Currently, Hibernate ORM does not use
 					// column size for anything, so for now, just return null.
-				.append( ", null AS " ) .append( resultSetDecimalDigitsLabel )
+				.append( ", null AS " ) .append( getResultSetDecimalDigitsLabel() )
 					// Decimal digits is fairly complicated to get out of information_schema
 					// and likely to be DB-dependent. Currently, Hibernate ORM does not use
 					// decimal digits for anything, so for now, just return null.
-				.append( ", is_nullable AS " ).append( resultSetIsNullableLabel )
-				.append( ", null AS " ).append( resultSetSqlTypeCodeLabel )
+				.append( ", is_nullable AS " ).append( getResultSetIsNullableLabel() )
+				.append( ", null AS " ).append( getResultSetSqlTypeCodeLabel() )
 					// SQL type code is not available from information_schema,
 					// and, for PostgreSQL at least, it appears to be hard-coded
 					// into the JDBC driver. Currently, Hibernate ORM only uses
@@ -318,11 +278,11 @@ public class ReactiveInformationExtractorImpl extends AbstractInformationExtract
 		appendSingleQuotedEscapedStringIfNonNull( " AND ct.relname = ", tableName.getText(), innerQuery );
 
 		return extractionContext.getQueryResults(
-				"SELECT tmp.index_name AS " + resultSetIndexNameLabel +
-						", tmp.index_type AS " + resultSetIndexTypeLabel +
-						", trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.ci_iod, tmp.position, false)) AS " + resultSetColumnNameLabel +
+				"SELECT tmp.index_name AS " + getResultSetIndexNameLabel() +
+						", tmp.index_type AS " + getResultSetIndexTypeLabel() +
+						", trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.ci_iod, tmp.position, false)) AS " + getResultSetColumnNameLabel() +
 						" FROM ( " + innerQuery + " ) tmp" +
-						" ORDER BY " + resultSetIndexNameLabel + ", tmp.position",
+						" ORDER BY " + getResultSetIndexNameLabel() + ", tmp.position",
 				processor
 		);
 	}
